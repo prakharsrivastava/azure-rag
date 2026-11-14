@@ -79,6 +79,45 @@ The observed file size in the enriched data was 302 bytes.
 
 When expanding the content in Azure Portal, the browser logged a CORS failure for a Search Debug Session document-structure request. This did not prevent the completed run or the enriched fields from being displayed; it affected that Portal content-preview interaction.
 
+## Terminal commands run
+
+These are the relevant command-line checks performed while diagnosing the Blob path and validating the repository. Secret values were not printed.
+
+### Check Blob access using the signed-in Azure CLI identity
+
+```bash
+az storage blob list \
+  --account-name corpordrage \
+  --container-name silver \
+  --auth-mode login \
+  --query "[].name" \
+  -o tsv
+```
+
+**Result:** Failed because the signed-in CLI identity did not have a Storage Blob Data Reader/Contributor role. This is separate from the Search service's managed identity role assignment, and is why the CLI result was not used as proof that the blob did not exist.
+
+### Search storage using the local connection string without printing it
+
+The local Python environment loaded `AZURE_STORAGE_CONNECTION_STRING` from the ignored `.env` file and checked the `silver` container for names containing `chunk.md`, then checked all configured containers for names ending in `chunk.md`:
+
+```bash
+.venv/bin/python -c 'from dotenv import load_dotenv; import os; from azure.storage.blob import BlobServiceClient; load_dotenv(); client=BlobServiceClient.from_connection_string(os.environ["AZURE_STORAGE_CONNECTION_STRING"]); print("\n".join(b.name for b in client.get_container_client("silver").list_blobs() if "chunk.md" in b.name.lower()))'
+
+.venv/bin/python -c 'from dotenv import load_dotenv; import os; from azure.storage.blob import BlobServiceClient; load_dotenv(); client=BlobServiceClient.from_connection_string(os.environ["AZURE_STORAGE_CONNECTION_STRING"]); [(print(c.name+"/"+b.name)) for c in client.list_containers() for b in client.get_container_client(c.name).list_blobs() if b.name.lower().endswith("chunk.md")]'
+```
+
+**Result:** Both commands completed without matching output for `chunk.md`. The user subsequently supplied the correct, different filename, `chunk_0001.md`, whose specific-document Debug Session completed successfully.
+
+### Validate the notebook and Git changes
+
+```bash
+.venv/bin/python -m json.tool azure_ai_search_hybrid_rag.ipynb >/dev/null
+git diff --check
+git push origin main
+```
+
+**Result:** Notebook JSON validation and whitespace checks passed. The documentation and notebook changes were pushed to `origin/main`.
+
 ## Current skillset pipeline and options
 
 The existing `silver-docs-skillset` applies Language Detection to `/document/content`, writes `/document/language`, then passes the text and language into Split. The split output is projected into the `silver-docs` index together with title and storage path.
