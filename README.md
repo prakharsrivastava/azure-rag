@@ -38,3 +38,7 @@ python azure_rag.py
 - `azure-cosmos` is installed for future expansion, but not used by this initial demo.
 - Do not disable SSL verification. Never share `.env` keys.
 - Azure resources may incur costs even if you have a trial account.
+
+## Azure RAG worklog
+
+See [AZURE_RAG_WORKLOG.md](./AZURE_RAG_WORKLOG.md) for the recorded notebook setup, Azure AI Search and Debug Session errors, resolutions, and validation results.

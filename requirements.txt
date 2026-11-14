@@ -10,4 +10,5 @@ azure-search-documents>=11.5
 azure-core>=1.30
 azure-cosmos>=4.7
 python-dotenv>=1.0
+pypdf>=5.0
 tiktoken>=0.7
